@@ -1,96 +1,42 @@
 package ma.projet.beans;
 
-import jakarta.persistence.*;
-import java.util.Date;
+import javax.persistence.*;
+import java.time.LocalDate;
 
-@Entity
-@Inheritance(strategy = InheritanceType.JOINED)
-@NamedQueries({
-        @NamedQuery(
-                name = "Personne.findFemmesMarieesDeuxFois",
-                query = "SELECT DISTINCT f FROM Femme f WHERE (SELECT COUNT(m) FROM Mariage m WHERE m.femme = f) >= 2"
-        )
-})
+@MappedSuperclass
 public abstract class Personne {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    protected int id;
+    @Column(unique = true)
+    private String cin;
+    protected String nom;
+    protected String prenom;
+    protected String telephone;
+    protected String adresse;
 
-    @Column(nullable = false)
-    private String nom;
+    private LocalDate dateNaissance;
 
-    @Column(nullable = false)
-    private String prenom;
+    public Personne() {}
 
-    @Column(nullable = false)
-    private String telephone;
-
-    @Column(nullable = false)
-    private String adresse;
-
-    @Temporal(TemporalType.DATE)
-    @Column(nullable = false)
-    private Date dateNaissance;
-
-    // Constructeurs
-    public Personne() {
+    public String getCin() {
+        return cin;
     }
 
-    public Personne(String nom, String prenom, String telephone, String adresse, Date dateNaissance) {
-        this.nom = nom;
-        this.prenom = prenom;
-        this.telephone = telephone;
-        this.adresse = adresse;
-        this.dateNaissance = dateNaissance;
+    public void setCin(String cin) {
+        this.cin = cin;
     }
 
-    // Getters et Setters
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getNom() {
-        return nom;
-    }
-
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
-
-    public String getPrenom() {
-        return prenom;
-    }
-
-    public void setPrenom(String prenom) {
-        this.prenom = prenom;
-    }
-
-    public String getTelephone() {
-        return telephone;
-    }
-
-    public void setTelephone(String telephone) {
-        this.telephone = telephone;
-    }
-
-    public String getAdresse() {
-        return adresse;
-    }
-
-    public void setAdresse(String adresse) {
-        this.adresse = adresse;
-    }
-
-    public Date getDateNaissance() {
-        return dateNaissance;
-    }
-
-    public void setDateNaissance(Date dateNaissance) {
-        this.dateNaissance = dateNaissance;
-    }
+    // Getters and setters
+    public int getId() { return id; }
+    public String getNom() { return nom; }
+    public void setNom(String nom) { this.nom = nom; }
+    public String getPrenom() { return prenom; }
+    public void setPrenom(String prenom) { this.prenom = prenom; }
+    public String getTelephone() { return telephone; }
+    public void setTelephone(String telephone) { this.telephone = telephone; }
+    public String getAdresse() { return adresse; }
+    public void setAdresse(String adresse) { this.adresse = adresse; }
+    public LocalDate getDateNaissance() { return dateNaissance; }
+    public void setDateNaissance(LocalDate dateNaissance) { this.dateNaissance = dateNaissance; }
 }

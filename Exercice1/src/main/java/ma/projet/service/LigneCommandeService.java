@@ -1,54 +1,54 @@
 package ma.projet.service;
 
 import ma.projet.dao.IDao;
-import ma.projet.classes.LigneCommande;
-import ma.projet.util.HibernateUtil;
+import ma.projet.classes.LigneCommandeProduit;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
-public class LigneCommandeService implements IDao<LigneCommande> {
+@Repository
+public class LigneCommandeService implements IDao<LigneCommandeProduit> {
+
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
-    public void create(LigneCommande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.save(o);
-        t.commit();
-        s.close();
+    @Transactional
+    public boolean create(LigneCommandeProduit ligneCommande) {
+        Session session = sessionFactory.getCurrentSession();
+        session.save(ligneCommande);
+        return true;
     }
 
     @Override
-    public LigneCommande getById(int id) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        LigneCommande lc = s.get(LigneCommande.class, id);
-        s.close();
-        return lc;
+    @Transactional
+    public boolean delete(LigneCommandeProduit ligneCommande) {
+        sessionFactory.getCurrentSession().delete(ligneCommande);
+        return true;
     }
 
     @Override
-    public List<LigneCommande> getAll() {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        List<LigneCommande> list = s.createQuery("FROM LigneCommande").list();
-        s.close();
-        return list;
+    @Transactional
+    public boolean update(LigneCommandeProduit ligneCommande) {
+        sessionFactory.getCurrentSession().update(ligneCommande);
+        return true;
     }
 
     @Override
-    public void update(LigneCommande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.update(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public LigneCommandeProduit findById(int id) {
+        return sessionFactory.getCurrentSession().get(LigneCommandeProduit.class, id);
     }
 
     @Override
-    public void delete(LigneCommande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.delete(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public List<LigneCommandeProduit> findAll() {
+        return sessionFactory.getCurrentSession()
+                .createQuery("from LigneCommandeProduit", LigneCommandeProduit.class)
+                .list();
     }
 }

@@ -1,100 +1,80 @@
 package ma.projet.service;
 
-import jakarta.persistence.*;
 import ma.projet.beans.Femme;
 import ma.projet.dao.IDao;
-import org.springframework.stereotype.Service;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 
-import java.util.Date;
 import java.util.List;
 
-@Service
-@Transactional
+@Repository
 public class FemmeService implements IDao<Femme> {
 
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
-    public boolean create(Femme o) {
-        try {
-            em.persist(o);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean create(Femme femme) {
+        Session session = sessionFactory.getCurrentSession();
+        session.save(femme);
+        return true;
     }
 
     @Override
-    public boolean delete(Femme o) {
-        try {
-            em.remove(em.contains(o) ? o : em.merge(o));
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean delete(Femme femme) {
+        sessionFactory.getCurrentSession().delete(femme);
+        return true;
     }
 
     @Override
-    public boolean update(Femme o) {
-        try {
-            em.merge(o);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean update(Femme femme) {
+        sessionFactory.getCurrentSession().update(femme);
+        return true;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Femme findById(int id) {
-        return em.find(Femme.class, id);
+        return sessionFactory.getCurrentSession().get(Femme.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Femme> findAll() {
-        TypedQuery<Femme> query = em.createQuery("SELECT f FROM Femme f", Femme.class);
-        return query.getResultList();
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Femme", Femme.class)
+                .list();
     }
 
-    /**
-     * Requête native nommée : Retourne le nombre d'enfants d'une femme entre deux dates
-     */
-    public long countEnfantsBetweenDates(int femmeId, Date dateDebut, Date dateFin) {
-        try {
-            Query query = em.createNamedQuery("Femme.countEnfantsBetweenDates");
-            query.setParameter("femmeId", femmeId);
-            query.setParameter("dateDebut", dateDebut);
-            query.setParameter("dateFin", dateFin);
-            Object result = query.getSingleResult();
-            return result != null ? ((Number) result).longValue() : 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
+
+    @Transactional(readOnly = true)
+    public int nombreEnfantsEntreDates(int femmeId, LocalDate dateDebut, LocalDate dateFin) {
+        Session session = sessionFactory.getCurrentSession();
+
+        Object result = session.createNamedQuery("Femme.nombreEnfantsEntreDates")
+                .setParameter(1, femmeId)
+                .setParameter(2, dateDebut)
+                .setParameter(3, dateFin)
+                .getSingleResult();
+
+        if (result == null) return 0;
+        return ((Number) result).intValue();
     }
 
-    /**
-     * Requête nommée : Retourne les femmes mariées au moins deux fois
-     */
-    public List<Femme> getFemmesMarieesDeuxFois() {
-        TypedQuery<Femme> query = em.createNamedQuery("Personne.findFemmesMarieesDeuxFois", Femme.class);
-        return query.getResultList();
+
+    @Transactional(readOnly = true)
+    public List<Femme> femmesMarieesAuMoinsDeuxFois() {
+        return sessionFactory.getCurrentSession()
+                .createNamedQuery("Femme.marieesDeuxFoisOuPlus", Femme.class)
+                .getResultList();
     }
 
-    /**
-     * Trouve la femme la plus âgée
-     */
-    public Femme getFemmeLaPlusAgee() {
-        TypedQuery<Femme> query = em.createQuery(
-                "SELECT f FROM Femme f ORDER BY f.dateNaissance ASC",
-                Femme.class
-        );
-        query.setMaxResults(1);
-        List<Femme> femmes = query.getResultList();
-        return femmes.isEmpty() ? null : femmes.get(0);
-    }
+
 }

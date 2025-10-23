@@ -1,11 +1,11 @@
 package ma.projet.dao;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface IDao<T, ID> {
-    T save(T entity);
-    Optional<T> findById(ID id);
+public interface IDao<T> {
+    boolean create(T o);
+    boolean delete(T o);
+    boolean update(T o);
+    T findById(int id);
     List<T> findAll();
-    void deleteById(ID id);
 }

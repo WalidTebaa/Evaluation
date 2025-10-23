@@ -2,53 +2,53 @@ package ma.projet.service;
 
 import ma.projet.dao.IDao;
 import ma.projet.classes.Commande;
-import ma.projet.util.HibernateUtil;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
+@Repository
 public class CommandeService implements IDao<Commande> {
 
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Override
-    public void create(Commande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.save(o);
-        t.commit();
-        s.close();
+    @Transactional
+    public boolean create(Commande commande) {
+        Session session = sessionFactory.getCurrentSession();
+        session.save(commande);
+        return true;
     }
 
     @Override
-    public Commande getById(int id) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Commande c = s.get(Commande.class, id);
-        s.close();
-        return c;
+    @Transactional
+    public boolean delete(Commande commande) {
+        sessionFactory.getCurrentSession().delete(commande);
+        return true;
     }
 
     @Override
-    public List<Commande> getAll() {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        List<Commande> list = s.createQuery("FROM Commande").list();
-        s.close();
-        return list;
+    @Transactional
+    public boolean update(Commande commande) {
+        sessionFactory.getCurrentSession().update(commande);
+        return true;
     }
 
     @Override
-    public void update(Commande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.update(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public Commande findById(int id) {
+        return sessionFactory.getCurrentSession().get(Commande.class, id);
     }
 
     @Override
-    public void delete(Commande o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.delete(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public List<Commande> findAll() {
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Commande", Commande.class)
+                .list();
     }
 }

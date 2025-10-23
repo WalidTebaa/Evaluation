@@ -3,7 +3,6 @@ package ma.projet.util;
 
 
 
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -17,10 +16,10 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.util.Properties;
 
 @Configuration
-@ComponentScan(basePackages = {"ma.projet.dao", "ma.projet.beans", "ma.projet.service"})
+@ComponentScan(basePackages = {"ma.projet.dao", "ma.projet.classes", "ma.projet.service"})
 @EnableTransactionManagement(proxyTargetClass = true)
 @PropertySource("classpath:application.properties")
-public class HibernateUtil {
+public class HibernateConfig {
 
     @Value("${spring.datasource.driver-class-name}")
     private String driverClassName;
@@ -60,7 +59,7 @@ public class HibernateUtil {
     public LocalSessionFactoryBean sessionFactory() {
         LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
         sessionFactory.setDataSource(dataSource());
-        sessionFactory.setPackagesToScan("ma.projet.dao", "ma.projet.beans", "ma.projet.service");
+        sessionFactory.setPackagesToScan("ma.projet.dao", "ma.projet.classes", "ma.projet.service");
 
         Properties hibernateProperties = new Properties();
         hibernateProperties.put("hibernate.dialect", hibernateDialect);
@@ -79,6 +78,4 @@ public class HibernateUtil {
         return txManager;
     }
 }
-
-
 

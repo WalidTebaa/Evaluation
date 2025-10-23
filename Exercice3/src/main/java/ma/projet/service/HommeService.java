@@ -1,167 +1,165 @@
 package ma.projet.service;
 
-import jakarta.persistence.*;
-import jakarta.persistence.criteria.*;
+import ma.projet.beans.Femme;
 import ma.projet.beans.Homme;
 import ma.projet.beans.Mariage;
-import ma.projet.beans.Femme;
 import ma.projet.dao.IDao;
-import org.springframework.stereotype.Service;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.time.LocalDate;
+import java.util.List;
 
-@Service
-@Transactional
+@Repository
 public class HommeService implements IDao<Homme> {
 
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
-    public boolean create(Homme o) {
-        try {
-            em.persist(o);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean create(Homme homme) {
+        Session session = sessionFactory.getCurrentSession();
+        session.save(homme);
+        return true;
     }
 
     @Override
-    public boolean delete(Homme o) {
-        try {
-            em.remove(em.contains(o) ? o : em.merge(o));
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean delete(Homme homme) {
+        sessionFactory.getCurrentSession().delete(homme);
+        return true;
     }
 
     @Override
-    public boolean update(Homme o) {
-        try {
-            em.merge(o);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+    @Transactional
+    public boolean update(Homme homme) {
+        sessionFactory.getCurrentSession().update(homme);
+        return true;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Homme findById(int id) {
-        return em.find(Homme.class, id);
+        return sessionFactory.getCurrentSession().get(Homme.class, id);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Homme> findAll() {
-        TypedQuery<Homme> query = em.createQuery("SELECT h FROM Homme h", Homme.class);
-        return query.getResultList();
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Homme", Homme.class)
+                .list();
     }
 
-    /**
-     * Affiche les épouses d'un homme entre deux dates
-     */
-    public List<Femme> getEpousesBetweenDates(Homme homme, Date dateDebut, Date dateFin) {
-        TypedQuery<Femme> query = em.createQuery(
-                "SELECT DISTINCT m.femme FROM Mariage m WHERE m.homme = :homme " +
-                        "AND m.dateDebut BETWEEN :dateDebut AND :dateFin",
-                Femme.class
-        );
-        query.setParameter("homme", homme);
-        query.setParameter("dateDebut", dateDebut);
-        query.setParameter("dateFin", dateFin);
-        return query.getResultList();
+    @Transactional(readOnly = true)
+    public List<Femme> findEpousesBetweenDates(int hommeId, LocalDate dateDebut, LocalDate dateFin) {
+        Session session = sessionFactory.getCurrentSession();
+        String hql = "SELECT m.femme FROM Mariage m " +
+                "WHERE m.homme.id = :hommeId " +
+                "AND m.dateDebut >= :dateDebut " +
+                "AND m.dateFin <= :dateFin";
+        return session.createQuery(hql, Femme.class)
+                .setParameter("hommeId", hommeId)
+                .setParameter("dateDebut", dateDebut)
+                .setParameter("dateFin", dateFin)
+                .list();
     }
 
-    /**
-     * Affiche le nombre d'hommes mariés à quatre femmes entre deux dates (API Criteria)
-     */
-    public long countHommesMariesQuatreFemmes(Date dateDebut, Date dateFin) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+
+    @Transactional(readOnly = true)
+    public void afficherEpousesEntreDates(int hommeId, LocalDate dateDebut, LocalDate dateFin) {
+        Session session = sessionFactory.getCurrentSession();
+        List<Femme> epouses = session.createQuery(
+                        "SELECT m.femme FROM Mariage m " +
+                                "WHERE m.homme.id = :hommeId " +
+                                "AND m.dateDebut >= :dateDebut " +
+                                "AND m.dateFin <= :dateFin",
+                        Femme.class
+                )
+                .setParameter("hommeId", hommeId)
+                .setParameter("dateDebut", dateDebut)
+                .setParameter("dateFin", dateFin)
+                .list();
+
+        if (!epouses.isEmpty()) {
+            System.out.println("Épouses de l'homme ID " + hommeId + " entre " + dateDebut + " et " + dateFin + " :");
+            System.out.printf("%-3s %-25s %-12s %-12s %-12s%n", "#", "Nom", "Prénom", "Date Début", "Date Fin");
+            int count = 1;
+            for (Femme f : epouses) {
+
+                Mariage mariage = f.getMariages().stream()
+                        .filter(m -> m.getHomme().getId() == hommeId &&
+                                !m.getDateDebut().isBefore(dateDebut) &&
+                                !m.getDateFin().isAfter(dateFin))
+                        .findFirst().orElse(null);
+
+                if (mariage != null) {
+                    String debut = mariage.getDateDebut() != null ? mariage.getDateDebut().toString() : "N/A";
+                    String fin = mariage.getDateFin() != null ? mariage.getDateFin().toString() : "N/A";
+                    System.out.printf("%-3d %-25s %-12s %-12s %-12s%n",
+                            count++, f.getNom(), f.getPrenom(), debut, fin);
+                }
+            }
+        } else {
+            System.out.println("Aucune épouse trouvée pour cet homme dans cette période.");
+        }
+    }
+
+
+
+
+
+
+    @Transactional(readOnly = true)
+    public long countHommesAvecQuatreFemmesEntreDates(LocalDate dateDebut, LocalDate dateFin) {
+        Session session = sessionFactory.getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Homme> homme = cq.from(Homme.class);
-        Join<Homme, Mariage> mariage = homme.join("mariages");
+        Root<Mariage> mariage = cq.from(Mariage.class);
 
-        cq.select(cb.count(homme));
-        cq.where(
-                cb.between(mariage.get("dateDebut"), dateDebut, dateFin)
+
+        cq.select(cb.countDistinct(mariage.get("homme")));
+
+
+        Predicate datePredicate = cb.and(
+                cb.greaterThanOrEqualTo(mariage.get("dateDebut"), dateDebut),
+                cb.or(
+                        cb.lessThanOrEqualTo(mariage.get("dateFin"), dateFin),
+                        cb.isNull(mariage.get("dateFin"))
+                )
         );
-        cq.groupBy(homme.get("id"));
-        cq.having(cb.equal(cb.count(mariage), 4));
 
-        try {
-            List<Long> results = em.createQuery(cq).getResultList();
-            return results.size();
-        } catch (Exception e) {
-            return 0;
-        }
+        cq.where(datePredicate);
+        cq.groupBy(mariage.get("homme"));
+        cq.having(cb.equal(cb.count(mariage.get("femme")), 4L));
+
+
+        List<Long> results = session.createQuery(cq).getResultList();
+        return results.size();
     }
 
-    /**
-     * Affiche les mariages d'un homme avec tous les détails
-     */
-    public void afficherMariagesHomme(int hommeId) {
-        Homme homme = findById(hommeId);
-        if (homme == null) {
-            System.out.println("Homme non trouvé");
-            return;
-        }
+    @Transactional(readOnly = true)
+    public void afficherNombreHommesAvecQuatreFemmes(LocalDate dateDebut, LocalDate dateFin) {
+        long nombre = countHommesAvecQuatreFemmesEntreDates(dateDebut, dateFin);
 
-        // Charger les mariages avec les femmes
-        TypedQuery<Mariage> query = em.createQuery(
-                "SELECT m FROM Mariage m JOIN FETCH m.femme WHERE m.homme.id = :hommeId ORDER BY m.dateDebut",
-                Mariage.class
-        );
-        query.setParameter("hommeId", hommeId);
-        List<Mariage> mariages = query.getResultList();
+        System.out.println("Nombre d'hommes mariés à 4 femmes entre deux dates :");
+        System.out.printf("%-5s %-25s %-12s %-12s%n", "Num", "Description", "Date Début", "Date Fin");
 
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
 
-        System.out.println("Nom : " + homme.getNom() + " " + homme.getPrenom());
+        System.out.printf("%-5d %-25s %-12s %-12s%n",
+                1, "Hommes mariés à 4 femmes", dateDebut, dateFin);
 
-        // Mariages en cours
-        List<Mariage> mariagesEnCours = mariages.stream()
-                .filter(m -> m.getDateFin() == null)
-                .collect(Collectors.toList());
-
-        if (!mariagesEnCours.isEmpty()) {
-            System.out.println("Mariages En Cours :");
-            int count = 1;
-            for (Mariage m : mariagesEnCours) {
-                System.out.printf("%d. Femme : %-20s Date Début : %-12s Nbr Enfants : %d%n",
-                        count,
-                        m.getFemme().getPrenom() + " " + m.getFemme().getNom(),
-                        sdf.format(m.getDateDebut()),
-                        m.getNbrEnfant()
-                );
-                count++;
-            }
-        }
-
-        // Mariages échoués
-        List<Mariage> mariagesEchoues = mariages.stream()
-                .filter(m -> m.getDateFin() != null)
-                .collect(Collectors.toList());
-
-        if (!mariagesEchoues.isEmpty()) {
-            System.out.println("\nMariages échoués :");
-            int count = 1;
-            for (Mariage m : mariagesEchoues) {
-                System.out.printf("%d. Femme : %-20s Date Début : %-12s Date Fin : %-12s Nbr Enfants : %d%n",
-                        count,
-                        m.getFemme().getPrenom() + " " + m.getFemme().getNom(),
-                        sdf.format(m.getDateDebut()),
-                        sdf.format(m.getDateFin()),
-                        m.getNbrEnfant()
-                );
-                count++;
-            }
-        }
+        System.out.println("Total : " + nombre);
     }
+
+
 }

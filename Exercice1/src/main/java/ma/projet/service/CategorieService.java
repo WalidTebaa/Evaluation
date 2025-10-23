@@ -2,53 +2,62 @@ package ma.projet.service;
 
 import ma.projet.dao.IDao;
 import ma.projet.classes.Categorie;
-import ma.projet.util.HibernateUtil;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
+@Repository
 public class CategorieService implements IDao<Categorie> {
 
+    @Autowired
+    private SessionFactory sessionFactory;
+
     @Override
-    public void create(Categorie o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.save(o);
-        t.commit();
-        s.close();
+    @Transactional
+    public boolean create(Categorie categorie) {
+        Session session = sessionFactory.getCurrentSession();
+        session.save(categorie);
+        return true;
     }
 
     @Override
-    public Categorie getById(int id) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Categorie c = s.get(Categorie.class, id);
-        s.close();
-        return c;
+    @Transactional
+    public boolean delete(Categorie categorie) {
+        sessionFactory.getCurrentSession().delete(categorie);
+        return true;
     }
 
     @Override
-    public List<Categorie> getAll() {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        List<Categorie> list = s.createQuery("FROM Categorie").list();
-        s.close();
-        return list;
+    @Transactional
+    public boolean update(Categorie categorie) {
+        sessionFactory.getCurrentSession().update(categorie);
+        return true;
     }
 
     @Override
-    public void update(Categorie o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.update(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public Categorie findById(int id) {
+        return sessionFactory.getCurrentSession().get(Categorie.class, id);
     }
 
     @Override
-    public void delete(Categorie o) {
-        Session s = HibernateUtil.getSessionFactory().openSession();
-        Transaction t = s.beginTransaction();
-        s.delete(o);
-        t.commit();
-        s.close();
+    @Transactional(readOnly = true)
+    public List<Categorie> findAll() {
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Categorie", Categorie.class)
+                .list();
+    }
+
+    @Transactional(readOnly = true)
+    public Categorie findByCode(String code) {
+        return sessionFactory.getCurrentSession()
+                .createQuery("from Categorie c where c.code = :code", Categorie.class)
+                .setParameter("code", code)
+                .uniqueResultOptional()
+                .orElse(null);
     }
 }

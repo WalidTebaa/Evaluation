@@ -3,9 +3,9 @@ package ma.projet.dao;
 import java.util.List;
 
 public interface IDao<T> {
-    void create(T o);
-    T getById(int id);
-    List<T> getAll();
-    void update(T o);
-    void delete(T o);
+    boolean create(T o);
+    boolean delete(T o);
+    boolean update(T o);
+    T findById(int id);
+    List<T> findAll();
 }
